@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>손가락 스피드 APM 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: #1976d2;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .start-area.hidden {
+            display: none;
+        }
+
+        .game-section {
+            display: none;
+        }
+
+        .game-section.active {
+            display: block;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            min-width: 100px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            background: linear-gradient(to bottom, #f5f5f5, #e8e8e8);
+            border-radius: 15px;
+            border: 2px solid #ddd;
+            cursor: default;
+            margin-bottom: 20px;
+            overflow: visible;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .number-circle {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            user-select: none;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .number-circle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .number-circle.active {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.7);
+            animation: pulse 0.4s ease-out;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 20px rgba(255, 107, 107, 0);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(255, 107, 107, 0.7);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #ddd;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #ccc;
+        }
+
+        .result-area {
+            display: none;
+            text-align: center;
+        }
+
+        .result-area.active {
+            display: block;
+        }
+
+        .result-big {
+            font-size: 4em;
+            color: #667eea;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .result-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .result-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .result-label {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .grade-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .ranking-area {
+            margin-top: 40px;
+        }
+
+        .ranking-area h2 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-size: 0.9em;
+        }
+
+        .rank-medal {
+            font-size: 1.5em;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .rank-info {
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .rank-apm {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .rank-time {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ 손가락 스피드 APM 테스트</h1>
+            <p class="subtitle">50부터 1까지 얼마나 빠르게 클릭할 수 있을까?</p>
+        </div>
+
+        <!-- 시작 전 -->
+        <div class="start-area" id="startArea">
+            <div class="instructions">
+                <strong>🎮 게임 규칙</strong><br>
+                ✓ 화면에 50부터 45까지 5개 숫자가 표시됩니다<br>
+                ✓ 50을 클릭하면 타이머가 시작됩니다<br>
+                ✓ 50을 누르면 50이 사라지고 44가 무작위 위치에 나타납니다<br>
+                ✓ 49, 48, ... 1까지 순서대로 빠르게 클릭하세요<br>
+                ✓ APM = (50 ÷ 소요시간(초)) × 60
+            </div>
+            <button class="btn-primary" onclick="startGame()" style="padding: 15px 40px; font-size: 1.1em; width: 100%; margin-bottom: 10px;">
+                🚀 테스트 시작
+            </button>
+        </div>
+
+        <!-- 게임 중 -->
+        <div class="game-section" id="gameSection">
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-label">⏱️ 시간</div>
+                    <div class="stat-value" id="timer">0.0초</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">🎯 진행</div>
+                    <div class="stat-value" id="progress">50/50</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">다음 숫자</div>
+                    <div class="stat-value" id="nextNumber">50</div>
+                </div>
+            </div>
+
+            <div class="game-area" id="gameArea"></div>
+
+            <div class="controls">
+                <button class="btn-secondary" onclick="stopGame()">멈추기</button>
+            </div>
+        </div>
+
+        <!-- 결과 -->
+        <div class="result-area" id="resultArea">
+            <h2>✨ 테스트 완료!</h2>
+            <div class="result-big" id="resultAPM">0 APM</div>
+
+            <div class="grade-box" id="gradeBox">평가</div>
+
+            <div class="result-details">
+                <div class="result-box">
+                    <div class="result-label">소요 시간</div>
+                    <div class="result-value" id="resultTime">0.0초</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">순위</div>
+                    <div class="result-value" id="resultRank">1/1</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">클릭 수</div>
+                    <div class="result-value">50</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-primary" onclick="startGame()" style="flex: 1; min-width: 120px;">다시 하기</button>
+                <button class="btn-secondary" onclick="location.reload()" style="flex: 1; min-width: 120px;">처음부터</button>
+            </div>
+        </div>
+
+        <!-- 랭킹 -->
+        <div class="ranking-area">
+            <h2>🏆 TOP 10 랭킹</h2>
+            <div class="ranking-list" id="rankingList">
+                <div class="loading">기록을 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            isRunning: false,
+            startTime: null,
+            currentNumber: 50,
+            nextToShow: 44,
+            elapsed: 0,
+            timerInterval: null,
+            visibleNumbers: new Map(), // 숫자 -> DOM 요소
+            lastClickTime: 0
+        };
+
+        const GAME_AREA_WIDTH = 600;
+        const GAME_AREA_HEIGHT = 450;
+        const CIRCLE_SIZE = 80;
+
+        function getRandomPosition() {
+            const x = Math.random() * (GAME_AREA_WIDTH - CIRCLE_SIZE);
+            const y = Math.random() * (GAME_AREA_HEIGHT - CIRCLE_SIZE);
+            return { x, y };
+        }
+
+        function startGame() {
+            gameState.isRunning = true;
+            gameState.startTime = null;
+            gameState.currentNumber = 50;
+            gameState.nextToShow = 44;
+            gameState.elapsed = 0;
+            gameState.visibleNumbers.clear();
+            gameState.lastClickTime = 0;
+
+            document.getElementById('startArea').classList.add('hidden');
+            document.getElementById('gameSection').classList.add('active');
+            document.getElementById('resultArea').classList.remove('active');
+
+            renderNumbers();
+            updateUI();
+
+            gameState.timerInterval = setInterval(() => {
+                if (gameState.startTime !== null) {
+                    gameState.elapsed = (Date.now() - gameState.startTime) / 1000;
+                    updateUI();
+                }
+            }, 50);
+        }
+
+        function renderNumbers() {
+            const gameArea = document.getElementById('gameArea');
+            gameArea.innerHTML = '';
+            gameState.visibleNumbers.clear();
+
+            // 처음에는 50부터 45까지 6개 표시
+            if (gameState.currentNumber === 50) {
+                for (let i = 50; i >= 45; i--) {
+                    createCircle(i);
+                }
+            } else {
+                // 이미 표시된 숫자들 중에서 currentNumber만 제거하고
+                // nextToShow를 추가
+                for (let i = gameState.currentNumber + 1; i >= gameState.nextToShow && i <= 50; i--) {
+                    if (i !== gameState.currentNumber - 1) {
+                        createCircle(i);
+                    }
+                }
+                if (gameState.nextToShow !== null && gameState.nextToShow >= 1) {
+                    createCircle(gameState.nextToShow);
+                }
+            }
+        }
+
+        function createCircle(num) {
+            const gameArea = document.getElementById('gameArea');
+            const circle = document.createElement('div');
+            circle.className = 'number-circle';
+            circle.textContent = num;
+            circle.dataset.number = num;
+
+            const pos = getRandomPosition();
+            circle.style.left = pos.x + 'px';
+            circle.style.top = pos.y + 'px';
+            circle.style.zIndex = num; // 큰 숫자가 앞에 오도록 설정
+
+            circle.onclick = (e) => {
+                e.stopPropagation();
+                clickNumber(num);
+            };
+
+            gameArea.appendChild(circle);
+            gameState.visibleNumbers.set(num, circle);
+        }
+
+        function clickNumber(num) {
+            if (!gameState.isRunning) return;
+
+            // 첫 클릭일 때 타이머 시작
+            if (gameState.startTime === null && num === 50) {
+                gameState.startTime = Date.now();
+            }
+
+            if (num !== gameState.currentNumber) return;
+
+            // 사라질 숫자의 circle에 animation 추가
+            const circle = gameState.visibleNumbers.get(num);
+            if (circle) {
+                circle.classList.add('active');
+                setTimeout(() => {
+                    circle.remove();
+                    gameState.visibleNumbers.delete(num);
+                }, 200);
+            }
+
+            // 다음 숫자로 진행
+            gameState.currentNumber--;
+
+            // 다음 숫자 결정 (1이 아닐 때만)
+            if (gameState.currentNumber >= 1) {
+                gameState.nextToShow = gameState.currentNumber - 5;
+                if (gameState.nextToShow < 1) gameState.nextToShow = null;
+
+                // 새로운 숫자 추가
+                if (gameState.nextToShow !== null && !gameState.visibleNumbers.has(gameState.nextToShow)) {
+                    createCircle(gameState.nextToShow);
+                }
+            }
+
+            updateUI();
+
+            // 게임 종료 체크
+            if (gameState.currentNumber < 1) {
+                endGame();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('timer').textContent = gameState.elapsed.toFixed(1) + '초';
+            document.getElementById('progress').textContent = (gameState.currentNumber) + '/50';
+            document.getElementById('nextNumber').textContent = gameState.currentNumber > 0 ? gameState.currentNumber : '✓';
+        }
+
+        function endGame() {
+            gameState.isRunning = false;
+            clearInterval(gameState.timerInterval);
+
+            const timeTaken = gameState.elapsed;
+            const apm = (50 / timeTaken) * 60;
+
+            document.getElementById('gameSection').classList.remove('active');
+            document.getElementById('resultArea').classList.add('active');
+
+            document.getElementById('resultAPM').textContent = Math.round(apm) + ' APM';
+            document.getElementById('resultTime').textContent = timeTaken.toFixed(2) + '초';
+
+            // 등급
+            let grade = '';
+            if (apm >= 500) grade = '🤯 초인 - 500+ APM';
+            else if (apm >= 400) grade = '🏆 최고급 - 400+ APM';
+            else if (apm >= 300) grade = '⭐ 상급 - 300+ APM';
+            else if (apm >= 200) grade = '💪 중급 - 200+ APM';
+            else if (apm >= 100) grade = '👍 초급 - 100+ APM';
+            else grade = '📚 연습 - 100 미만 APM';
+
+            document.getElementById('gradeBox').textContent = grade;
+
+            // 점수 저장
+            saveScore({ apm: apm, time: timeTaken });
+            const rankings = getTopRankings();
+            const rank = rankings.findIndex(s => s.apm >= Math.round(apm)) + 1;
+            document.getElementById('resultRank').textContent = rank + '/' + getAllScores().length;
+
+            loadRankings();
+        }
+
+        function stopGame() {
+            if (gameState.isRunning) {
+                endGame();
+            }
+        }
+
+        function saveScore(score) {
+            const scores = getAllScores();
+            scores.push({
+                apm: Math.round(score.apm * 100) / 100,
+                time: Math.round(score.time * 100) / 100,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('speedApmScores', JSON.stringify(scores));
+        }
+
+        function getAllScores() {
+            const stored = localStorage.getItem('speedApmScores');
+            return stored ? JSON.parse(stored) : [];
+        }
+
+        function getTopRankings() {
+            const scores = getAllScores();
+            return scores.sort((a, b) => b.apm - a.apm).slice(0, 10);
+        }
+
+        function loadRankings() {
+            const rankings = getTopRankings();
+            const list = document.getElementById('rankingList');
+
+            if (rankings.length === 0) {
+                list.innerHTML = '<div class="loading">아직 기록이 없습니다. 첫 도전자가 되세요! 🎮</div>';
+                return;
+            }
+
+            list.innerHTML = rankings.map((item, idx) => {
+                const medals = ['🥇', '🥈', '🥉'];
+                const medal = medals[idx] || `#${idx + 1}`;
+
+                return `
+                    <div class="ranking-item">
+                        <div class="rank-medal">${medal}</div>
+                        <div class="rank-info">
+                            <div class="rank-apm">${item.apm.toFixed(0)} APM</div>
+                            <div class="rank-time">시간: ${item.time.toFixed(2)}초</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 페이지 로드 시
+        window.addEventListener('DOMContentLoaded', loadRankings);
+    </script>
+</body>
+</html>
